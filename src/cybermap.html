@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+<meta content="utf-8" http-equiv="encoding">
+<script src="d3/d3.v5.min.js"></script>
+<script src="topojson/topojson-client.min.js"></script>
+<script src="jquery/jquery-3.6.0.js"></script>
+<script src="jquery/jquery-ui.js"></script>
+<script type="text/javascript" src="scripts/cybermap_mini.js"></script>
+<link rel="stylesheet" type="text/css" href="jquery/jquery-ui.css">
+<style type="text/css">
+  body {
+    background-color: #212222;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cybermap-waiting {
+    position: fixed;
+    z-index: 99999;
+    width: 100%;
+    height: 100%;
+    background: #212222;
+    opacity: 1;
+    display: none;
+  }
+
+  .cybermap-waiting-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    display: none;
+  }
+
+  .cybermap-waiting-msg {
+    padding-top: 10px;
+    font-family: monospace !important;
+    font-size: 10px !important;
+    color: #d0d0d0 !important;
+    display: none;
+  }
+
+  .cybermap-hex-spinner {
+    width: 140px;
+    height: 140px;
+    animation: cybermap-spinner 2s linear infinite;
+  }
+
+  .cybermap-worldmap-country {
+    fill: #737373;
+    stroke: #313131;
+    stroke-width: .5px;
+    stroke-linejoin: round;
+  }
+
+  .cybermap-worldmap-route {
+    fill: none;
+    stroke-width: 2px;
+    opacity: 1;
+    stroke-linecap: round;
+  }
+
+  .cybermap-worldmap-point {
+    fill: none;
+    stroke-width: 8px;
+    stroke-linecap: round;
+  }
+
+  .cybermap-worldmap-water {
+    fill: #212222;
+    stroke: #212222;
+  }
+
+  .cybermap-worldmap-city {
+    fill: #FFFF00;
+  }
+
+  .cybermap-worldmap-graticule {
+    fill: none;
+    stroke: #777;
+    stroke-width: .5px;
+    stroke-opacity: .5;
+  }
+
+  @keyframes cybermap-spinner {
+    0% {
+      stroke-dasharray: 0 0 300 300;
+    }
+
+    50% {
+      stroke-dasharray: 0 150 300 300;
+    }
+
+    75% {
+      stroke-dasharray: 150 150 150 150;
+    }
+
+    100% {
+      stroke-dasharray: 300 300 150 150;
+    }
+  }
+
+  .cybermap-multi-output-panel {
+    display: none;
+    background: none repeat scroll 0 0 transparent !important;
+    border: none !important;
+    background-color: #383939 !important;
+    padding: 0px !important;
+    border-radius: 4px;
+    opacity: .9 !important;
+    box-shadow: 0 3px 3px rgb(0, 0, 0, 0.2);
+    width: auto !important;
+    min-width: 500px !important;
+  }
+
+  .cybermap-multi-output-panel>* {
+    font-family: monospace !important;
+    font-size: 10px !important;
+    color: #d0d0d0 !important;
+  }
+
+  .cybermap-multi-output-panel .ui-dialog-titlebar {
+    padding-left: 10px;
+    position: relative;
+    font-size: 1em;
+    border-radius: 4px;
+    background: #383939;
+    border: 0;
+    color: #000;
+    font-weight: normal;
+  }
+
+  .cybermap-multi-output-panel .ui-dialog-titlebar-close {
+    border: 0 none;
+    background-color: transparent;
+  }
+
+  .cybermap-multi-output-panel .cybermap-multi-output-panel-body {
+    padding: 0 10px 5px 10px !important;
+    max-height: 210px;
+    overflow-x: hidden;
+  }
+
+  .cybermap-multi-output-panel .in-a-row-flex {
+    width: 100%;
+    height: 25px;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+  }
+
+  .cybermap-multi-output-panel .width-100 {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    width: 100%;
+    display: flex;
+  }
+
+
+  .output-wrapper {
+    display: flex;
+    flex-direction: column-reverse;
+    flex-wrap: wrap;
+  }
+
+  .output-wrapper .country-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .output-wrapper .country-row > *{
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .output-wrapper .country-row:not(:first-child) {
+    border-bottom: 1px solid #444444;
+    padding-bottom: 5px;
+    padding-top: 5px;
+  }
+
+  .output-wrapper .country-row:first-child {
+    padding-top: 5px;
+  }
+
+  .output-wrapper .country-info {
+    width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .output-wrapper .country-info-full-width {
+    width: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .output-wrapper table {
+    color: #d0d0d0 !important;
+    font-size: 10px !important;
+    table-layout: fixed;
+    border-collapse: collapse;
+    width: 100%;
+    word-wrap: break-word;
+
+  }
+
+  .output-wrapper table td {
+    table-layout: fixed;
+  }
+
+  .output-wrapperpper img {
+    width: 25px !important;
+    height: 15px !important;
+  }
+
+  .output-wrapper .time {
+    width: 150px !important;
+    max-width: 150px !important;
+    min-width: 150px !important;
+    text-align: center;
+  }
+
+  .output-wrapper .country-flag {
+    width: 50px !important;
+    max-width: 50px !important;
+    min-width: 50px !important;
+    text-align: center;
+    font-size: 25px;
+  }
+
+  .output-wrapper .action {
+    width: 20px !important;
+    max-width: 20px !important;
+    min-width: 20px !important;
+  }
+
+  .cybermap-single-output-panel {
+    display: none;
+    position: absolute;
+    bottom: 0;
+    background: none repeat scroll 0 0 transparent !important;
+    border: none !important;
+    height: 70px;
+    padding: 0px !important;
+    border-radius: 4px;
+    opacity: .9 !important;
+    width: 100% !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .cybermap-single-output-panel .country-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .cybermap-single-output-panel>* {
+    font-family: monospace !important;
+    font-size: 10px !important;
+    color: #d0d0d0 !important;
+  }
+
+  .cybermap-single-output-panel .ui-dialog-titlebar {
+    padding-left: 10px;
+    position: relative;
+    font-size: 1em;
+    border-radius: 4px;
+    background: #383939;
+    border: 0;
+    color: #000;
+    font-weight: normal;
+  }
+
+  .cybermap-single-output-panel .ui-dialog-titlebar-close {
+    border: 0 none;
+    background-color: transparent;
+  }
+
+  .cybermap-single-output-panel .cybermap-single-output-panel-body {
+    padding: 0 10px 5px 10px !important;
+    max-height: 210px;
+    overflow-x: hidden;
+  }
+
+  .cybermap-single-output-panel .in-a-row-flex {
+    width: 100%;
+    height: 25px;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+  }
+
+  .cybermap-single-output-panel .width-100 {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    width: 100%;
+    display: flex;
+  }
+
+  .cybermap-top-message {
+    position: fixed;
+    top: 25px;
+    right: 25px;
+    font-family: monospace !important;
+    font-size: 12px !important;
+    line-height: 14px;
+    color: #d0d0d0 !important
+  }
+
+  .cybermap-top-message a {
+    text-decoration: none;
+    color: #d0d0d0 !important;
+  }
+
+  .taskbar-panel {
+    display: none;
+    background: none repeat scroll 0 0 transparent !important;
+    border: none !important;
+    background-color: #383939 !important;
+    padding: 0px !important;
+    border-radius: 0px;
+    opacity: .9 !important;
+    height: auto;
+    width: auto;
+    box-shadow: 0 3px 3px rgb(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+
+  .taskbar-panel .ui-dialog-titlebar {
+    display: none;
+  }
+
+
+  .taskbar-panel-body {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .taskbar-panel-body div:not(.cell-separator-taskbar) {
+    color: #d0d0d0 !important;
+    padding-left: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    line-height: 20px;
+    font-size: 20px;
+    width: 20px;
+    text-align: center;
+  }
+
+  .taskbar-panel-body #khulnasoft-lab-logo {
+    color: #d0d0d0 !important;
+    width: 170px;
+    text-align: center;
+  }
+
+  .taskbar-panel-body #khulnasoft-lab-logo a {
+    font-family: monospace !important;
+    font-size: 14px !important;
+    line-height: 14px;
+    text-decoration: none;
+    color: #d0d0d0 !important;
+  }
+
+  .taskbar-panel-body>div:last-child {
+    padding-right: 10px;
+  }
+
+  button,
+  input[type="text"],
+  a {
+    outline: none;
+  }
+
+  #cybermap-table-icon {
+    display: none;
+  }
+
+  .cybermap-insert-panel {
+    display: none;
+    background: none repeat scroll 0 0 transparent !important;
+    border: none !important;
+    background-color: #383939 !important;
+    padding: 0px !important;
+    border-radius: 4px;
+    opacity: .9 !important;
+    box-shadow: 0 3px 3px rgb(0, 0, 0, 0.2);
+    height: 100px;
+    width: 100px;
+  }
+
+  .cybermap-insert-panel>* {
+    font-family: monospace !important;
+    font-size: 10px !important;
+    color: #d0d0d0 !important;
+  }
+
+  .cybermap-insert-panel .ui-dialog-titlebar {
+    padding-left: 10px;
+    position: relative;
+    font-size: 1em;
+    border-radius: 4px;
+    background: #383939;
+    border: 0;
+    color: #000;
+    font-weight: normal;
+  }
+
+  .cybermap-insert-panel .ui-dialog-titlebar-close {
+    border: 0 none;
+    background-color: transparent;
+  }
+
+  .cybermap-insert-panel .cybermap-multi-output-panel-body {
+    padding: 0 10px 5px 10px !important;
+    max-height: 155px;
+    overflow-x: hidden;
+  }
+
+
+  .ui-widget-header .ui-icon {
+    background-image: url(https://code.jquery.com/ui/1.10.3/themes/ui-lightness/images/ui-icons_ffffff_256x240.png) !important;
+    opacity: 0.4;
+    filter: alpha(opacity=40);
+  }
+
+  .ui-state-hover .ui-icon,
+  .ui-state-focus .ui-icon,
+  .ui-state-default .ui-icon {
+    background-image: url(https://code.jquery.com/ui/1.10.3/themes/ui-lightness/images/ui-icons_ffffff_256x240.png) !important;
+    opacity: 1;
+    filter: alpha(opacity=100);
+  }
+
+  .div-100 {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .span-flex {
+    display: flex;
+    padding: 10px;
+    width: 100%
+  }
+
+  .span-flex input[type="text"] {
+    width: 100%
+  }
+
+  .cell-separator {
+    width: 15px;
+  }
+
+  input[type="text"] {
+    background-color: #2b2b2b !important;
+    -webkit-border-radius: 2px !important;
+    border-radius: 2px !important;
+    border: none;
+    padding: 3px 6px 3px 6px !important;
+    color: #d0d0d0 !important;
+    font-size: 12px;
+  }
+
+  input[type="button"] {
+    border: 0;
+    background-color: #2b2b2b;
+    box-shadow: none;
+    -webkit-border-radius: 2px !important;
+    border-radius: 2px !important;
+    color: #d0d0d0 !important;
+    border: none;
+    font-size: 12px;
+  }
+
+  .cell-separator-taskbar {
+    width: 2px;
+    margin-left: 10px;
+    background-color: #2b2b2b !important;
+  }
+
+  #cybermap-insert-result {
+    display: flex;
+    padding-top: 0px !important;
+    align-items: center;
+  }
+
+  #cybermap-insert-result>* {
+    display: flex;
+    padding-right: 15px !important;
+  }
+
+  #cybermap-insert-result img {
+    width: 25px !important;
+    height: 15px !important;
+  }
+
+
+  .cybermap-tooltip-panel {
+    display: none;
+    background: none repeat scroll 0 0 transparent !important;
+    border: none !important;
+    background-color: #383939 !important;
+    padding: 0px !important;
+    border-radius: 4px;
+    opacity: .9 !important;
+    box-shadow: 0 3px 3px rgb(0, 0, 0, 0.2);
+  }
+
+  .cybermap-tooltip-panel>* {
+    font-family: monospace !important;
+    font-size: 10px !important;
+    color: #d0d0d0 !important;
+  }
+
+  .cybermap-tooltip-panel .ui-dialog-titlebar {
+    padding-left: 10px;
+    position: relative;
+    font-size: 1em;
+    border-radius: 4px;
+    background: #383939;
+    border: 0;
+    color: #000;
+    font-weight: normal;
+  }
+
+  .cybermap-tooltip-panel .ui-dialog-titlebar-close {
+    border: 0 none;
+    background-color: transparent;
+  }
+
+  .cybermap-tooltip-panel .cybermap-tooltip-panel-body {
+    max-height: 210px;
+    overflow-x: hidden;
+    display: flex;
+    margin-bottom: 10px !important;
+  }
+
+  .cybermap-tooltip-panel .in-a-row-flex {
+    width: 100%;
+    height: 25px;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+  }
+
+  .cybermap-tooltip-panel .targets,
+  .cybermap-tooltip-panel .origins {
+    padding: 10px;
+    width: 230px;
+    display: flex;
+  }
+
+  .cybermap-tooltip-panel .origins {
+    border-left: 1px solid #444444;
+  }
+
+  #cybermap-tooltip-table-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  #cybermap-tooltip-table-wrapper .country-row {
+    display: flex;
+    align-items: center;
+  }
+
+  #cybermap-tooltip-table-wrapper .country-header {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    border-bottom: 1px solid #444444;
+    width: 100%
+  }
+
+  #cybermap-tooltip-table-wrapper .country-row:not(:last-child) {
+    border-bottom: 1px solid #444444;
+    padding-bottom: 5px;
+    padding-top: 5px;
+  }
+
+  #cybermap-tooltip-table-wrapper .country-row:last-child {
+    padding-top: 5px;
+  }
+
+
+  #cybermap-tooltip-table-wrapper table {
+    color: #d0d0d0 !important;
+    font-size: 10px !important;
+    table-layout: fixed;
+    border-collapse: collapse;
+    width: 100%;
+    word-wrap: break-word;
+
+  }
+
+  #output-wrapper table td {
+    table-layout: fixed;
+  }
+
+  #cybermap-tooltip-table-wrapper img {
+    width: 25px !important;
+    height: 15px !important;
+  }
+
+  #cybermap-tooltip-table-wrapper .country-info {
+    width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #cybermap-tooltip-table-wrapper .country-flag {
+    width: 50px !important;
+    max-width: 50px !important;
+    min-width: 50px !important;
+    text-align: center;
+    font-size: 25px;
+  }
+
+  #cybermap-tooltip-table-wrapper .country-count {
+    width: 50px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+  }
+
+  #cybermap-insert-panel .ip-info {
+    padding: 10px;
+  }
+
+  .cybermap-random-panel {
+    background: none repeat scroll 0 0 transparent !important;
+    border: none !important;
+    background-color: #383939 !important;
+    padding: 0px !important;
+    border-radius: 4px;
+    opacity: .9 !important;
+    box-shadow: 0 3px 3px rgb(0, 0, 0, 0.2);
+    height: 100px;
+    width: 100px;
+  }
+
+  .cybermap-random-panel>* {
+    font-family: monospace !important;
+    font-size: 10px !important;
+    color: #d0d0d0 !important;
+  }
+
+  .cybermap-random-panel .ui-dialog-titlebar {
+    padding-left: 10px;
+    position: relative;
+    font-size: 1em;
+    border-radius: 4px;
+    background: #383939;
+    border: 0;
+    color: #000;
+    font-weight: normal;
+  }
+
+  .cybermap-random-panel .ui-dialog-titlebar-close {
+    border: 0 none;
+    background-color: transparent;
+  }
+
+  .cybermap-random-button-active {
+    background-color: #555555 !important;
+  }
+
+
+  .cell-separator-border {
+    width: 15px;
+    border-left: 1px solid #555555;
+    margin-left: 5px;
+  }
+
+  .cybermap-random-panel .span-flex>* {
+    margin-right: 2px;
+  }
+
+  input[type="text"]::-webkit-input-placeholder {
+    font-size: 10px;
+    line-height: 10px;
+  }
+
+  ::placeholder {
+    font-size: 10px;
+    line-height: 10px;
+  }
+
+  .fa-star:before {
+    font-style: normal !important;
+    content: "\2605" !important;
+    font-size: 20px !important;
+  }
+
+  .fa-undo:before {
+    font-style: normal !important;
+    content: "\21BA" !important;
+  }
+
+  .fa-random:before {
+    font-style: normal !important;
+    content: "\21C4" !important;
+  }
+
+  .fa-pencil-square-o:before {
+    font-style: normal !important;
+    content: "\270E" !important;
+  }
+
+  .fa-table:before {
+    font-style: normal !important;
+    content: "\2637" !important;
+  }
+
+  .fa-single-table:before {
+    font-style: normal !important;
+    content: "\268B" !important;
+  }
+
+  .fa-sun:before {
+    font-style: normal !important;
+    content: "\2600" !important;
+  }
+
+  .fa-moon:before {
+    font-style: normal !important;
+    content: "\263D" !important;
+  }
+
+  .fa-half-moon:before {
+    font-style: normal !important;
+    content: "\274D" !important;
+  }
+
+  input[type="color"] {
+    -webkit-appearance: none;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid #555555;
+    width: 20px;
+    height: 20px;
+  }
+
+  input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  input[type="color"]::-webkit-color-swatch {
+    border: none;
+  }
+
+  *:focus {
+    outline: none;
+  }
+</style>
+</head>
+<body>
+  <div class="cybermap-waiting" id="cybermap-waiting">
+    <div class="cybermap-waiting-box" id="cybermap-waiting-box">
+      <svg class="cybermap-hex-spinner" viewBox="0 -5 100 110">
+        <polygon stroke-width="7" stroke="#aa6400" fill-opacity="0" id="hex" points="50 1 95 25 95 75 50 99 5 75 5 25" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="cybermap-waiting-msg" id="cybermap-waiting-msg">
+      </div>
+    </div>
+  </div>
+  <div id="cybermap-multi-output-panel" class="cybermap-multi-output-panel" title="Live Attacks">
+    <div class="cybermap-multi-output-panel-body">
+      <div id="cybermap-multi-output-panel-body-table" class="output-wrapper">
+      </div>
+    </div>
+  </div>
+  <div id="cybermap-single-output-panel" class="cybermap-single-output-panel">
+    <div id="cybermap-single-output-panel-body" class="cybermap-single-output-panel-body output-wrapper">
+    </div>
+  </div>
+  <div id="cybermap-tooltip-panel" class="cybermap-tooltip-panel" title="Attacks Stats">
+    <div class="cybermap-tooltip-panel-body">
+      <div id="cybermap-tooltip-table-wrapper" class="targets">
+      </div>
+      <div id="cybermap-tooltip-table-wrapper" class="origins">
+      </div>
+    </div>
+  </div>
+  <div id="cybermap-insert-panel" class="cybermap-insert-panel" title="Check IP or Mobile">
+    <div class="cybermap-insert-panel-body div-100">
+      <div class="span-flex">
+        <input type="text" id="cybermap-insert-text" placeholder="IP or Mobile (E.g. 0.0.0.0 or +1425..)">
+        <div class="cell-separator"></div>
+        <input type="button" id="cybermap-insert-button" value="Check" />
+      </div>
+      <div id="cybermap-insert-result" class="ip-info">
+      </div>
+    </div>
+  </div>
+  <div id="cybermap-random-panel" class="cybermap-insert-panel" title="Generate Random Data">
+    <div class="cybermap-random-panel-body div-100">
+      <div class="span-flex">
+        <input type="text" id="cybermap-random-text" placeholder="Attaks">
+        <div class="cell-separator"></div>
+        <input type="text" id="cybermap-random-timeout" placeholder="Time (ms)">
+        <div class="cell-separator"></div>
+        <input type="text" id="cybermap-random-delay" placeholder="Delay (ms)">
+        <div class="cell-separator"></div>
+        <input type="button" id="cybermap-random-countries-button" value="Countries" />
+        <div class="cell-separator"></div>
+        <input type="button" id="cybermap-random-cities-button" value="Cities" />
+        <div class="cell-separator"></div>
+        <input type="button" id="cybermap-random-ips-button" value="IPs" />
+        <div class="cell-separator"></div>
+        <input type="button" id="cybermap-random-coordinates-button" value="Coordinates" />
+        <div class="cell-separator-border"></div>
+        <input type="button" id="cybermap-random-generate-button" value="Generate" />
+      </div>
+    </div>
+  </div>
+  <div id="taskbar-panel" class="taskbar-panel">
+    <div class="taskbar-panel-body">
+      <div id="reset"><i class="fa fa-undo" aria-hidden="true"></i></div>
+      <div class="cell-separator-taskbar"></div>
+      <div id="half-moon-style"><i class="fa fa-half-moon" aria-hidden="true"></i></div>
+      <div id="moon-style"><i class="fa fa-moon" aria-hidden="true"></i></div>
+      <div id="sun-style"><i class="fa fa-sun" aria-hidden="true"></i></div>
+      <div id="background-color"><input type="color" id="global-background-color" value="#212222"></div>
+      <div id="country-color"><input type="color" id="global-country-color" value="#737373"></div>
+      <div id="khulnasoft-lab-logo-separator" class="cell-separator-taskbar"></div>
+      <div id="khulnasoft-lab-logo">
+        <a href="https://github.com/khulnasoft-lab/cybermap" target="_blank">khulnasoft-lab - cybermap</a>
+        <a href="https://github.com/khulnasoft-lab/cybermap/stargazers" target="_blank"><i class="fa fa-star"></i></a>
+      </div>
+    </div>
+  </div>
+  <div id="cybermap-worldmap-svg"></div>
+    <script>
+    var cybermap = new cm_cybermap_map("#cybermap-worldmap-svg")
+    const delay = x => new Promise(y => setTimeout(y, x))
+      while (cybermap === undefined) {
+        delay(250)
+    }
+
+  </script>
+</body>

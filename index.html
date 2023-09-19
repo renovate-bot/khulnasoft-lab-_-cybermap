@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
+  <link rel="icon" type="image/png" href="https://khulnasoft-lab.github.io/images/icon.png" />
+  <title>cybermap Example</title>
+  <style type="text/css">
+    html {
+      overflow: auto;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0px;
+      padding: 0px;
+      border: none;
+    }
+
+    iframe {
+      height: 100%;
+      width: 100%;
+      margin: 0px;
+      padding: 0px;
+      display: block;
+      border: none;
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <iframe id="cybermap-iframe" src="src/cybermap.html" frameborder="0" width="100%" height="100%" scrolling="auto"></iframe>
+  <script type="text/javascript">
+
+    document.getElementById('cybermap-iframe').addEventListener("load", function() {
+
+      var cybermap_options = {
+        'world_type': null,
+        'selected_countries': [],
+        'remove_countries': ['aq'],
+        'height': window.innerHeight,
+        'width': window.innerWidth,
+        'backup_background_color': '#212222',
+        'orginal_country_color': '#737373',
+        'clicked_country_color': '#6c4242',
+        'selected_country_color': '#ff726f',
+        'global_timeout': 2000,
+        'global_stats_limit': 10,
+        'db_length': 1000,
+        'live_attacks_limit':50,
+        'location': 'scripts',
+        'panels': ['multi-output', 'single-output','tooltip', 'random', 'insert','taskbar','logo'],
+        'disable': [],
+        'websocket':{'server':'ws://'+window.location.hostname+':5678',
+                      'request_timeout':3000},
+        'verbose': false
+      }
+
+      window['cybermap'] = document.getElementById('cybermap-iframe').contentWindow.cybermap
+      window['cybermap'].init_all(cybermap_options)
+      window['cybermap'].init_world()
+
+    });
+
+  </script>
+</body>
+
+</html>
