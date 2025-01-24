@@ -2,7 +2,7 @@ version: '3.5'
 
 services:
   db:
-    image: mysql:5.7
+    image: mysql:9.2
     environment:
       MYSQL_DATABASE: testdb
       MYSQL_USER: change_me_user
